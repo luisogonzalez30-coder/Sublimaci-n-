@@ -72,7 +72,7 @@ Antes de dar por cerrado cada PR:
 3. Pruebas unitarias de cálculo (precios, impuestos, abonos, trial, formateo multi-moneda) — `npm test`
 4. Corregir **todo** error antes de cerrar el paso. No se entrega con checks en rojo ni se omiten tests para pasar.
 
-Scripts mínimos requeridos en `package.json`: `typecheck` (`tsc --noEmit`), `build`, `test`, `lint`.
+Scripts mínimos requeridos en `package.json`: `typecheck` (`tsc --noEmit`), `build`, `test`.
 
 ### Checklist rápido de PR
 
