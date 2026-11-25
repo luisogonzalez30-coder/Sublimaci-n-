@@ -8,10 +8,11 @@ export interface Workspace {
   tax_rate_pct: number;
   trial_ends_at: string;
   subscription_status: string;
+  mp_conectado: boolean;
 }
 
 export const WORKSPACE_COLUMNS =
-  "id, owner_id, nombre_taller, whatsapp, country_code, currency_code, tax_rate_pct, trial_ends_at, subscription_status";
+  "id, owner_id, nombre_taller, whatsapp, country_code, currency_code, tax_rate_pct, trial_ends_at, subscription_status, mp_conectado";
 
 export const CATEGORIAS = ["blanco", "estampado", "tinta_papel", "empaque", "otro"] as const;
 export const UNIDADES = ["unidad", "cm", "ml", "hoja", "minuto"] as const;
@@ -52,4 +53,43 @@ export interface Producto {
 
 export interface ProductoConReceta extends Producto {
   producto_insumos: { id: string; insumo_id: string; cantidad_requerida: number; insumos: Pick<Insumo, "id" | "nombre" | "costo_unitario" | "unidad_medida"> | null }[];
+}
+
+export type CotizacionEstado = "borrador" | "enviada" | "abonada" | "cancelada";
+
+export interface CotizacionResumen {
+  id: string;
+  cliente_nombre: string;
+  cliente_whatsapp: string;
+  total: number;
+  abono_requerido: number;
+  abono_porcentaje: number;
+  estado: CotizacionEstado;
+  slug_publico: string;
+  created_at: string;
+}
+
+export interface CotizacionPublica {
+  slug: string;
+  cliente_nombre: string;
+  items: { nombre: string; cantidad: number; precio_unitario: number; subtotal: number }[];
+  total: number;
+  abono_porcentaje: number;
+  abono_requerido: number;
+  plazo_entrega_dias: number;
+  notas_personalizacion: string | null;
+  estado: CotizacionEstado;
+  created_at: string;
+  taller: { nombre_taller: string; whatsapp: string; country_code: string; currency_code: string; mp_conectado: boolean };
+}
+
+export interface Plantilla {
+  id: string;
+  slug: string;
+  nombre: string;
+  descripcion: string;
+  emoji: string;
+  publicar_desde: string | null;
+  publicar_hasta: string | null;
+  solo_pro: boolean;
 }

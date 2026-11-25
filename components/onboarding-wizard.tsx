@@ -98,7 +98,7 @@ export function OnboardingWizard({ initialStep, initialCountry, initialTax, exis
       {step === 2 && (
         <section className="space-y-4">
           <h1 className="text-2xl font-bold">Tus primeros insumos</h1>
-          <p className="text-sm text-slate-600">Ajusta el costo de cada uno ({preset.currency}). Luego podrás agregar más.</p>
+          <p className="text-sm text-slate-600">Costos referenciales en {preset.currency}: ajústalos a lo que realmente pagas. Luego podrás agregar más.</p>
           {SUGERIDOS.map((s) => (
             <div key={s.key}>
               <label className="label" htmlFor={`o-${s.key}`}>{s.nombre}</label>

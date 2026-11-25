@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getWorkspace } from "@/lib/data";
+import { getAccessibleWorkspace, getWorkspace } from "@/lib/data";
 import { insumoSchema, productoSchema, type ActionResult } from "@/lib/validation";
 
 const firstIssue = (e: { issues: { message: string }[] }) => e.issues[0]?.message ?? "Datos inválidos";
@@ -10,8 +10,8 @@ export async function guardarInsumo(input: unknown): Promise<ActionResult<{ id: 
   const parsed = insumoSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstIssue(parsed.error) };
   const { id, ...fields } = parsed.data;
-  const { supabase, workspace } = await getWorkspace();
-  if (!workspace) return { ok: false, error: "Completa el onboarding primero" };
+  const { supabase, workspace, error: accessError } = await getAccessibleWorkspace();
+  if (!workspace) return { ok: false, error: accessError ?? "Sin acceso" };
 
   const q = id
     ? supabase.from("insumos").update(fields).eq("id", id)
@@ -35,37 +35,20 @@ export async function eliminarInsumo(id: string): Promise<ActionResult> {
 export async function guardarProducto(input: unknown): Promise<ActionResult<{ id: string }>> {
   const parsed = productoSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstIssue(parsed.error) };
-  const { id, items, ...fields } = parsed.data;
-  const { supabase, workspace } = await getWorkspace();
-  if (!workspace) return { ok: false, error: "Completa el onboarding primero" };
+  const { items, ...producto } = parsed.data;
+  const { supabase, workspace, error: accessError } = await getAccessibleWorkspace();
+  if (!workspace) return { ok: false, error: accessError ?? "Sin acceso" };
 
-  let productoId = id;
-  if (id) {
-    const { error } = await supabase.from("productos").update(fields).eq("id", id);
-    if (error) return { ok: false, error: "No se pudo actualizar el producto" };
-    const { error: delErr } = await supabase.from("producto_insumos").delete().eq("producto_id", id);
-    if (delErr) return { ok: false, error: "No se pudo actualizar la receta" };
-  } else {
-    const { data, error } = await supabase
-      .from("productos")
-      .insert({ ...fields, workspace_id: workspace.id })
-      .select("id")
-      .single<{ id: string }>();
-    if (error || !data) return { ok: false, error: "No se pudo crear el producto" };
-    productoId = data.id;
-  }
-
-  if (items.length > 0) {
-    const { error } = await supabase
-      .from("producto_insumos")
-      .insert(items.map((i) => ({ ...i, producto_id: productoId! })));
-    if (error) {
-      if (!id) await supabase.from("productos").delete().eq("id", productoId!); // compensa creación fallida
-      return { ok: false, error: "No se pudo guardar la receta (revisa los insumos)" };
-    }
+  // Una sola transacción en Postgres: producto + receta, o nada.
+  const { data, error } = await supabase.rpc("upsert_producto_con_insumos", { p_producto: producto, p_items: items });
+  if (error || !data) {
+    const msg = error?.message ?? "";
+    if (msg.includes("PRODUCTO_NO_ENCONTRADO")) return { ok: false, error: "El producto no existe" };
+    if (msg.includes("row-level security") || msg.includes("foreign key")) return { ok: false, error: "Alguno de los insumos no es válido" };
+    return { ok: false, error: "No se pudo guardar el producto" };
   }
   revalidatePath("/", "layout");
-  return { ok: true, data: { id: productoId! } };
+  return { ok: true, data: { id: data as string } };
 }
 
 export async function eliminarProducto(id: string): Promise<ActionResult> {

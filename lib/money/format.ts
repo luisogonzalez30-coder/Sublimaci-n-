@@ -17,3 +17,20 @@ export function formatMoney(amount: number | null | undefined, ctx: MoneyContext
 export function formatPct(n: number): string {
   return `${new Intl.NumberFormat("es", { maximumFractionDigits: 2 }).format(n)}%`;
 }
+
+/** Decimales de la moneda según Intl (CLP/COP = 0, MXN/ARS/PEN/USD = 2). */
+export function currencyDecimals(currency: string): number {
+  return new Intl.NumberFormat("en", { style: "currency", currency }).resolvedOptions().maximumFractionDigits ?? 2;
+}
+
+/** Redondea hacia ARRIBA a los decimales de la moneda (así un precio nunca queda bajo el costo). */
+export function ceilMoney(amount: number, currency: string): number {
+  const f = 10 ** currencyDecimals(currency);
+  return Math.ceil(Math.round(amount * f * 1e6) / 1e6) / f;
+}
+
+/** Redondeo comercial a los decimales de la moneda. */
+export function roundMoney(amount: number, currency: string): number {
+  const f = 10 ** currencyDecimals(currency);
+  return Math.round((amount + Number.EPSILON) * f) / f;
+}

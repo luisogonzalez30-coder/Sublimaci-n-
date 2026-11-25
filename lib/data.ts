@@ -1,5 +1,6 @@
 import "server-only";
 import { redirect } from "next/navigation";
+import { TRIAL_ENDED_MESSAGE, hasActiveAccess } from "@/lib/billing/access";
 import { createClient } from "@/lib/supabase/server";
 import { WORKSPACE_COLUMNS, type Insumo, type ProductoConReceta, type Workspace } from "@/lib/types";
 
@@ -46,4 +47,12 @@ export async function getProducto(id: string): Promise<ProductoConReceta | null>
   const { supabase } = await requireUser();
   const { data } = await supabase.from("productos").select(PRODUCTO_SELECT).eq("id", id).maybeSingle<ProductoConReceta>();
   return data;
+}
+
+/** Para Server Actions: workspace + verificación de trial/suscripción (el guard no es solo de UI). */
+export async function getAccessibleWorkspace() {
+  const ctx = await getWorkspace();
+  if (!ctx.workspace) return { ...ctx, workspace: null, error: "Completa el onboarding primero" as string | null };
+  if (!hasActiveAccess(ctx.workspace)) return { ...ctx, workspace: null, error: TRIAL_ENDED_MESSAGE as string | null };
+  return { ...ctx, workspace: ctx.workspace, error: null as string | null };
 }

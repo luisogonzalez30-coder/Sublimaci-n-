@@ -1,44 +1,14 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
-import { PGlite } from "@electric-sql/pglite";
+import type { PGlite } from "@electric-sql/pglite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { calculatePricing } from "../lib/pricing/calculator";
-
-const USER_A = "00000000-0000-0000-0000-00000000000a";
-const USER_B = "00000000-0000-0000-0000-00000000000b";
+import { USER_A, USER_B, asUser as asUserH, createTestDb, num as numH } from "./test-db";
 
 let db: PGlite;
-
-/** Ejecuta `fn` como el rol `authenticated` con auth.uid() = uid (equivalente a una request PostgREST). */
-async function asUser<T>(uid: string, fn: () => Promise<T>): Promise<T> {
-  await db.exec(`select set_config('request.jwt.claim.sub', '${uid}', false); set role authenticated;`);
-  try {
-    return await fn();
-  } finally {
-    await db.exec("reset role;");
-  }
-}
-
-async function num(sql: string, params: unknown[] = []): Promise<number | null> {
-  const r = await db.query<{ v: string | null }>(sql, params);
-  const v = r.rows[0]?.v;
-  return v == null ? null : Number(v);
-}
+const asUser = <T,>(uid: string, fn: () => Promise<T>) => asUserH(db, uid, fn);
+const num = (sql: string, params: unknown[] = []) => numH(db, sql, params);
 
 beforeAll(async () => {
-  db = new PGlite();
-  await db.exec(`
-    create role anon nologin; create role authenticated nologin;
-    create schema auth;
-    create table auth.users (id uuid primary key);
-    create function auth.uid() returns uuid language sql stable
-      as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
-    grant usage on schema public, auth to anon, authenticated;
-    grant execute on function auth.uid() to anon, authenticated;
-    grant select on auth.users to authenticated;
-    insert into auth.users values ('${USER_A}'), ('${USER_B}');
-  `);
-  await db.exec(readFileSync(path.join(import.meta.dirname, "migrations/001_core_schema.sql"), "utf8"));
+  db = await createTestDb();
 }, 60_000);
 
 afterAll(async () => {

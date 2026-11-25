@@ -25,15 +25,20 @@ export default async function InicioPage() {
       </header>
 
       {enTrial && (
-        <p className="rounded-xl bg-indigo-50 p-3 text-sm text-indigo-800">
-          {diasTrial > 0 ? `Te quedan ${diasTrial} día${diasTrial === 1 ? "" : "s"} de prueba.` : "Tu prueba terminó."}
-        </p>
+        <Link href="/suscripcion" className="block rounded-xl bg-indigo-50 p-3 text-sm text-indigo-800">
+          {`Te quedan ${diasTrial} día${diasTrial === 1 ? "" : "s"} de prueba.`} <b className="underline">Activar plan</b>
+        </Link>
       )}
 
       <section className="grid grid-cols-2 gap-3">
         <Link href="/insumos" className="card"><p className="text-3xl font-bold">{insumos.length}</p><p className="text-sm text-slate-500">Insumos</p></Link>
         <Link href="/productos" className="card"><p className="text-3xl font-bold">{productos.length}</p><p className="text-sm text-slate-500">Productos</p></Link>
       </section>
+
+      <nav aria-label="Accesos rápidos" className="grid grid-cols-2 gap-3 text-sm">
+        <Link href="/biblioteca" className="card font-medium">📚 Biblioteca de temporadas</Link>
+        <Link href="/configuracion/pagos" className="card font-medium">💳 Cobros Mercado Pago</Link>
+      </nav>
 
       <section className="space-y-3">
         <h2 className="font-semibold">Tus productos</h2>

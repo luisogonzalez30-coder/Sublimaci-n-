@@ -1,7 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/registro", "/auth"];
+import { accessRedirect, isOperationalPath, type AccessState } from "@/lib/billing/access";
+
+const PUBLIC_PATHS = ["/login", "/registro", "/auth", "/c", "/api/quotes", "/api/webhooks"];
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -37,6 +39,22 @@ export async function updateSession(request: NextRequest) {
     url.pathname = "/";
     url.search = "";
     return NextResponse.redirect(url);
+  }
+
+  // Guard de trial/suscripción (server-side): trial vencido y sin plan activo ⇒ Paywall.
+  if (user && isOperationalPath(path)) {
+    const { data: ws } = await supabase
+      .from("workspaces")
+      .select("trial_ends_at, subscription_status")
+      .eq("owner_id", user.id)
+      .maybeSingle<AccessState>();
+    const target = accessRedirect(path, ws ?? null);
+    if (target) {
+      const url = request.nextUrl.clone();
+      url.pathname = target;
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
   }
   return response;
 }
